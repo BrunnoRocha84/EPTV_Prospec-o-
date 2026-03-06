@@ -1,21 +1,24 @@
-# EPTV - Pipeline de ProspecÃ§Ã£o Comercial
-# DependÃªncias do projeto
+# EPTV - Pipeline de Prospecção Comercial
+# Dependências do projeto
 
-# ManipulaÃ§Ã£o de dados
+# Manipulação de dados
 pandas>=1.5.0
-openpyxl>=3.0.0      # Leitura/escrita de Excel
-xlrd>=2.0.0          # Leitura de .xls antigos
+openpyxl>=3.0.0
+xlrd>=2.0.0
 
-# UtilitÃ¡rios
+# Requisições HTTP (APIs externas)
+requests>=2.28.0
+
+# Variáveis de ambiente
+python-dotenv>=1.0.0
+
+# Utilitários
 python-dateutil>=2.8.0
 
-# Opcional - para interface web (futuro)
+# Interface web
 # streamlit>=1.20.0
 
-# Opcional - para requisiÃ§Ãµes HTTP (verificaÃ§Ã£o de sites)
-# requests>=2.28.0
-
-# Desenvolvimento
+# Desenvolvimento (opcional)
 # pytest>=7.0.0
 # black>=22.0.0
 # flake8>=4.0.0

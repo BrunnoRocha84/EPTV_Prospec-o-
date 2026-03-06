@@ -36,3 +36,7 @@ Thumbs.db
 # Temp
 *.tmp
 *.bak
+
+# Environment variables
+.env
+.env.local
