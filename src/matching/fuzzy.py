@@ -1,7 +1,7 @@
 """
 Módulo de Cruzamento com Bases Internas (Fuzzy Matching)
 Responsabilidades:
-- Fazer fuzzy matching entre Econodata e Kantar/Crowley
+- Fazer fuzzy matching entre Econodata e Kantar/Crowley/Painéis
 - Calcular índice de similaridade
 - Identificar empresas que investem em mídia
 """
@@ -10,6 +10,8 @@ import pandas as pd
 from pathlib import Path
 from typing import Optional, List, Dict, Tuple
 import sys
+import os
+import glob
 
 # Adiciona o diretório raiz ao path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -69,6 +71,111 @@ def carregar_base_midia(caminho: str) -> Optional[pd.DataFrame]:
     
     logger.info(f"Base carregada: {len(df)} registros")
     return df
+
+
+def carregar_multiplos_ooh(pasta_input: str) -> Optional[pd.DataFrame]:
+    """
+    Carrega todos os arquivos OOH da pasta e consolida em um único DataFrame.
+    """
+    if not pasta_input:
+        return None
+        
+    logger.info(f"Buscando arquivos OOH na pasta: {pasta_input}")
+    
+    # Encontra todos os arquivos que terminam com _OOH.xlsx
+    padrao_busca = os.path.join(pasta_input, "*_OOH.xlsx")
+    arquivos_ooh = glob.glob(padrao_busca)
+    
+    if not arquivos_ooh:
+        logger.warning(f"Nenhum arquivo OOH encontrado em {pasta_input}")
+        return None
+        
+    logger.info(f"Encontrados {len(arquivos_ooh)} arquivos OOH. Consolidando...")
+    
+    dfs_consolidados = []
+    
+    for arquivo in arquivos_ooh:
+        try:
+            # Lê pulando as linhas de cabeçalho especial (linha 11)
+            df = pd.read_excel(arquivo, skiprows=11, dtype=str)
+            
+            # Procura coluna de anunciante
+            col_anunciante = None
+            for col in df.columns:
+                if 'ANUNCIANTE' in str(col).upper():
+                    col_anunciante = col
+                    break
+            
+            if not col_anunciante:
+                continue
+                
+            # Procura coluna de categoria
+            col_categoria = None
+            for col in df.columns:
+                if 'CATEGORIA' in str(col).upper():
+                    col_categoria = col
+                    break
+            
+            # Procura coluna de investimento (Total ou última coluna com $)
+            col_investimento = None
+            for col in df.columns:
+                if 'TOTAL' in str(col).upper() and '$' in str(col):
+                    col_investimento = col
+                    break
+            
+            if not col_investimento:
+                for col in df.columns:
+                    if '($)' in str(col):
+                        col_investimento = col
+            
+            # Monta DataFrame de anunciantes deste arquivo
+            colunas_usar = [col_anunciante]
+            if col_categoria:
+                colunas_usar.append(col_categoria)
+            if col_investimento:
+                colunas_usar.append(col_investimento)
+            
+            df_temp = df[colunas_usar].copy()
+            
+            # Renomeia colunas
+            df_temp = df_temp.rename(columns={col_anunciante: 'ANUNCIANTE'})
+            
+            if col_categoria:
+                df_temp = df_temp.rename(columns={col_categoria: 'CATEGORIA'})
+            if col_investimento:
+                df_temp = df_temp.rename(columns={col_investimento: 'VALOR'})
+                df_temp['VALOR'] = pd.to_numeric(df_temp['VALOR'], errors='coerce').fillna(0)
+            
+            # Remove vazios
+            df_temp = df_temp[
+                (df_temp['ANUNCIANTE'].notna()) & 
+                (df_temp['ANUNCIANTE'] != '')
+            ]
+            
+            dfs_consolidados.append(df_temp)
+            
+        except Exception as e:
+            logger.warning(f"Erro ao processar arquivo {arquivo}: {e}")
+    
+    if not dfs_consolidados:
+        return None
+        
+    # Concatena todos os DataFrames
+    df_final = pd.concat(dfs_consolidados, ignore_index=True)
+    
+    # Agrupa por anunciante somando os investimentos
+    if 'VALOR' in df_final.columns:
+        agg_dict = {'VALOR': 'sum'}
+        if 'CATEGORIA' in df_final.columns:
+            agg_dict['CATEGORIA'] = 'first'
+        
+        df_final = df_final.groupby('ANUNCIANTE', as_index=False).agg(agg_dict)
+    else:
+        df_final = df_final.drop_duplicates(subset=['ANUNCIANTE'])
+    
+    logger.info(f"Base OOH consolidada: {len(df_final)} anunciantes únicos")
+    
+    return df_final
 
 
 def extrair_anunciantes(df_midia: pd.DataFrame) -> List[Dict]:
@@ -195,7 +302,8 @@ def fazer_matching(
 def cruzar_bases(
     df: pd.DataFrame,
     caminho_kantar: Optional[str] = None,
-    caminho_crowley: Optional[str] = None
+    caminho_crowley: Optional[str] = None,
+    pasta_paineis: Optional[str] = None
 ) -> pd.DataFrame:
     """
     Função principal - cruza Econodata com bases de mídia.
@@ -218,6 +326,7 @@ def cruzar_bases(
         logger.error("Coluna de nome não encontrada!")
         df['_match_kantar'] = False
         df['_match_crowley'] = False
+        df['_match_paineis'] = False
         df['_tem_match_midia'] = False
         return df
     
@@ -279,9 +388,39 @@ def cruzar_bases(
         df['_match_crowley'] = False
         df['_crowley_score'] = 0
         df['_crowley_nome'] = None
+        
+    # === MATCHING COM PAINÉIS (OOH) ===
+    if pasta_paineis:
+        logger.info("-"*50)
+        logger.info("Processando PAINÉIS (OOH)...")
+        
+        df_paineis = carregar_multiplos_ooh(pasta_paineis)
+        anunciantes_paineis = extrair_anunciantes(df_paineis)
+        
+        if anunciantes_paineis:
+            resultado_paineis = fazer_matching(df, anunciantes_paineis, col_nome, col_cidade)
+            
+            df['_match_paineis'] = resultado_paineis['match_encontrado']
+            df['_paineis_score'] = resultado_paineis['match_score']
+            df['_paineis_nome'] = resultado_paineis['match_nome']
+            df['_paineis_valor'] = resultado_paineis['match_valor']
+            
+            matches = df['_match_paineis'].sum()
+            logger.info(f"Matches Painéis: {matches}/{len(df)}")
+        else:
+            df['_match_paineis'] = False
+            df['_paineis_score'] = 0
+            df['_paineis_nome'] = None
+            df['_paineis_valor'] = 0
+    else:
+        logger.info("Pasta de Painéis não fornecida")
+        df['_match_paineis'] = False
+        df['_paineis_score'] = 0
+        df['_paineis_nome'] = None
+        df['_paineis_valor'] = 0
     
     # === CONSOLIDA ===
-    df['_tem_match_midia'] = df['_match_kantar'] | df['_match_crowley']
+    df['_tem_match_midia'] = df['_match_kantar'] | df['_match_crowley'] | df['_match_paineis']
     
     total_com_midia = df['_tem_match_midia'].sum()
     logger.info("-"*50)
@@ -304,6 +443,7 @@ if __name__ == "__main__":
         arquivo_econodata = sys.argv[1]
         arquivo_kantar = sys.argv[2] if len(sys.argv) > 2 else None
         arquivo_crowley = sys.argv[3] if len(sys.argv) > 3 else None
+        pasta_paineis = sys.argv[4] if len(sys.argv) > 4 else None
         
         # Pipeline até aqui
         df = carregar_base(arquivo_econodata)
@@ -311,18 +451,19 @@ if __name__ == "__main__":
         df = avaliar_presenca_digital(df)
         
         # Matching
-        df = cruzar_bases(df, arquivo_kantar, arquivo_crowley)
+        df = cruzar_bases(df, arquivo_kantar, arquivo_crowley, pasta_paineis)
         
         print(f"\nColunas de matching:")
-        print([c for c in df.columns if 'match' in c.lower() or 'kantar' in c.lower() or 'crowley' in c.lower()])
+        print([c for c in df.columns if 'match' in c.lower() or 'kantar' in c.lower() or 'crowley' in c.lower() or 'paineis' in c.lower()])
         
         # Mostra matches encontrados
         if df['_tem_match_midia'].sum() > 0:
             print(f"\nEmpresas com match em mídia:")
-            cols = ['NOME FANTASIA', '_match_kantar', '_kantar_nome', '_kantar_score']
-            print(df[df['_tem_match_midia']][cols].head(10))
+            cols = ['NOME FANTASIA', '_match_kantar', '_match_crowley', '_match_paineis']
+            cols_existentes = [c for c in cols if c in df.columns]
+            print(df[df['_tem_match_midia']][cols_existentes].head(10))
         else:
             print("\nNenhum match encontrado com as bases de mídia.")
     else:
-        print("Uso: python fuzzy.py <econodata> [kantar] [crowley]")
-        print("Exemplo: python fuzzy.py ../../data/input/Saude.xlsx ../../data/input/kantar.xlsx")
+        print("Uso: python fuzzy.py <econodata> [kantar] [crowley] [pasta_paineis]")
+        print("Exemplo: python fuzzy.py ../../data/input/Saude.xlsx ../../data/input/kantar.xlsx None ../../data/input")

@@ -6,11 +6,11 @@ Pipeline de Prospecção Comercial - EPTV
 Script principal que orquestra a execução do pipeline completo.
 
 Uso:
-    python main.py --econodata <arquivo> [--kantar <arquivo>] [--crowley <arquivo>]
+    python main.py --econodata <arquivo> [--kantar <arquivo>] [--crowley <arquivo>] [--paineis <pasta>]
     python main.py --help
 
 Exemplo:
-    python main.py --econodata data/input/Saude.xlsx --kantar data/input/kantar.xlsx
+    python main.py --econodata data/input/Saude.xlsx --kantar data/input/kantar.xlsx --paineis data/input
 """
 
 import argparse
@@ -36,6 +36,7 @@ def parse_args():
 Exemplos:
   python main.py --econodata data/input/Saude.xlsx
   python main.py --econodata data/input/Saude.xlsx --kantar data/input/kantar.xlsx
+  python main.py --econodata data/input/Saude.xlsx --paineis data/input
   python main.py --econodata data/input/Saude.xlsx --output data/output/resultado.xlsx
         """
     )
@@ -56,6 +57,12 @@ Exemplos:
         "--crowley", "-c",
         required=False,
         help="Caminho para arquivo Crowley (opcional)"
+    )
+    
+    parser.add_argument(
+        "--paineis", "-p",
+        required=False,
+        help="Caminho para a pasta com arquivos OOH de Painéis (opcional)"
     )
     
     parser.add_argument(
@@ -104,6 +111,11 @@ def main():
     if crowley_path and not crowley_path.exists():
         logger.warning(f"Arquivo Crowley não encontrado: {crowley_path}")
         crowley_path = None
+        
+    paineis_path = Path(args.paineis) if args.paineis else None
+    if paineis_path and not paineis_path.exists():
+        logger.warning(f"Pasta de Painéis não encontrada: {paineis_path}")
+        paineis_path = None
     
     # Define output
     if args.output:
@@ -167,7 +179,7 @@ def main():
         
         from matching import cruzar_bases
         
-        df = cruzar_bases(df, kantar_path, crowley_path)
+        df = cruzar_bases(df, kantar_path, crowley_path, paineis_path)
         
         matches = df['_tem_match_midia'].sum() if '_tem_match_midia' in df.columns else 0
         logger.info(f"✓ Cruzamento concluído: {matches} matches encontrados")

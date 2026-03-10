@@ -35,7 +35,7 @@ PESOS = {
     'cadastro': 0.15,      # Dados válidos e completos
     'viabilidade': 0.25,   # Faturamento, porte
     'digital': 0.20,       # Presença em redes sociais
-    'midia': 0.25,         # Match com Kantar/Crowley
+    'midia': 0.25,         # Match com Kantar/Crowley/Painéis
     'contato': 0.15,       # Telefone e email
 }
 
@@ -115,22 +115,35 @@ def calcular_score_digital(df: pd.DataFrame) -> pd.Series:
 def calcular_score_midia(df: pd.DataFrame) -> pd.Series:
     """
     Score de investimento em mídia (0-100).
-    Baseado em: match com Kantar/Crowley.
+    Baseado em: match com Kantar/Crowley/Painéis.
     """
     score = pd.Series(0.0, index=df.index)
     
-    # Match com Kantar: +50 pontos
+    # Match com Kantar: +35 pontos
     if '_match_kantar' in df.columns:
-        score += df['_match_kantar'].astype(float) * 50
+        score += df['_match_kantar'].astype(float) * 35
     
-    # Match com Crowley: +50 pontos
+    # Match com Crowley: +35 pontos
     if '_match_crowley' in df.columns:
-        score += df['_match_crowley'].astype(float) * 50
+        score += df['_match_crowley'].astype(float) * 35
+        
+    # Match com Painéis: +30 pontos
+    if '_match_paineis' in df.columns:
+        score += df['_match_paineis'].astype(float) * 30
     
-    # Se tiver score de confiança alto, bonus
+    # Se tiver score de confiança alto em qualquer um, bonus
+    bonus = pd.Series(0.0, index=df.index)
+    
     if '_kantar_score' in df.columns:
-        bonus = (df['_kantar_score'] > 0.85).astype(float) * 10
-        score = (score + bonus).clip(0, 100)
+        bonus += (df['_kantar_score'] > 0.85).astype(float) * 5
+        
+    if '_crowley_score' in df.columns:
+        bonus += (df['_crowley_score'] > 0.85).astype(float) * 5
+        
+    if '_paineis_score' in df.columns:
+        bonus += (df['_paineis_score'] > 0.85).astype(float) * 5
+        
+    score = (score + bonus).clip(0, 100)
     
     return score
 
@@ -242,7 +255,7 @@ def gerar_output(df: pd.DataFrame, caminho_output: str) -> str:
         '_score_cadastro', '_score_viabilidade', '_score_digital', 
         '_score_midia', '_score_contato',
         '_empresa_ativa', '_tem_contato', '_presenca_digital',
-        '_match_kantar', '_match_crowley'
+        '_match_kantar', '_match_crowley', '_match_paineis'
     ]
     
     # Filtra colunas que existem
@@ -265,6 +278,7 @@ def gerar_output(df: pd.DataFrame, caminho_output: str) -> str:
         '_presenca_digital': 'PRESENCA_DIGITAL',
         '_match_kantar': 'ANUNCIA_TV',
         '_match_crowley': 'ANUNCIA_RADIO',
+        '_match_paineis': 'ANUNCIA_PAINEIS',
     }
     df_output = df_output.rename(columns=renomear)
     
@@ -330,12 +344,14 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         arquivo_econodata = sys.argv[1]
         arquivo_kantar = sys.argv[2] if len(sys.argv) > 2 else None
+        arquivo_crowley = sys.argv[3] if len(sys.argv) > 3 else None
+        pasta_paineis = sys.argv[4] if len(sys.argv) > 4 else None
         
         # Pipeline completo
         df = carregar_base(arquivo_econodata)
         df = validar_empresas(df)
         df = avaliar_presenca_digital(df)
-        df = cruzar_bases(df, arquivo_kantar, None)
+        df = cruzar_bases(df, arquivo_kantar, arquivo_crowley, pasta_paineis)
         
         # Scoring
         df = calcular_score(df)
@@ -348,4 +364,4 @@ if __name__ == "__main__":
         print(f"\n🎉 Pipeline completo executado!")
         print(f"📁 Arquivo gerado: {output_path}")
     else:
-        print("Uso: python scoring.py <econodata> [kantar]")
+        print("Uso: python scoring.py <econodata> [kantar] [crowley] [pasta_paineis]")
