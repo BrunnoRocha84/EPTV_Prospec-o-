@@ -1,11 +1,8 @@
 # Pipeline de Prospecção Comercial - EPTV
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-Internal-yellow.svg)]()
-
 Sistema automatizado para refinamento de bases de prospecção comercial, integrando validação cadastral, enriquecimento digital e cruzamento com bases de mídia.
 
-## 🎯 Visão Geral
+## Visão Geral
 
 O pipeline processa bases de prospecção (Econodata) e enriquece com:
 - Validação de situação cadastral (Receita Federal)
@@ -13,7 +10,7 @@ O pipeline processa bases de prospecção (Econodata) e enriquece com:
 - Cruzamento com bases de mídia (TV, Rádio, OOH)
 - Scoring de priorização para abordagem comercial
 
-## 📁 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 eptv_prospeccao/
@@ -54,11 +51,11 @@ eptv_prospeccao/
 └── README.md
 ```
 
-## 🚀 Instalação
+## Instalação
 
 ### 1. Clonar o repositório
 ```bash
-git clone https://dev.azure.com/data-and-crm/General/_git/eptv-prospeccao
+git 
 cd eptv_prospeccao
 ```
 
@@ -84,7 +81,7 @@ cp .env.example .env
 # Editar .env com suas API Keys
 ```
 
-## ⚙️ Configuração
+## Configuração
 
 ### API Keys necessárias
 
@@ -97,7 +94,7 @@ cp .env.example .env
 GEMINI_API_KEY=sua_chave_aqui
 ```
 
-## 📖 Uso
+## Uso
 
 ### Pipeline Completo (Recomendado)
 
@@ -136,7 +133,7 @@ python -m src.services.gemini "data/input/base.xlsx" 10
 python -m src.services.nominatim "data/input/base.xlsx" 10
 ```
 
-## 📊 Pipeline - Etapas
+## Pipeline - Etapas
 
 ### 1. Ingestão e Preparação
 - Carrega arquivos Excel/CSV
@@ -172,7 +169,7 @@ python -m src.services.nominatim "data/input/base.xlsx" 10
 - Excel com 3 abas: Lista Priorizada, Resumo, Top 20
 - Prioridades: `MUITO_ALTA`, `ALTA`, `MÉDIA`, `BAIXA`
 
-## 🔌 APIs Utilizadas
+## APIs Utilizadas
 
 | API | Uso | Custo | Rate Limit |
 |-----|-----|-------|------------|
@@ -181,7 +178,7 @@ python -m src.services.nominatim "data/input/base.xlsx" 10
 | Google Gemini | Análise de publicidade | Gratuito | 1.000/dia |
 | Nominatim | Geocodificação | Gratuito | 1/seg |
 
-## 📈 Resultados - Exemplo
+## Resultados - Exemplo
 
 Base: Saúde - Ribeirão Preto (242 empresas)
 
@@ -197,7 +194,7 @@ Base: Saúde - Ribeirão Preto (242 empresas)
 | Prioridade MUITO_ALTA | 3 |
 | Prioridade ALTA | 77 |
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### "API Key não configurada"
 ```bash
@@ -218,9 +215,6 @@ cp .env.example .env
 - Verificar se bases de mídia contêm dados da região
 - Ajustar threshold de similaridade se necessário
 
-## 🤝 Contribuição
-
-Ver [CONTRIBUTING.md](CONTRIBUTING.md) para guia detalhado.
 
 ```bash
 # Criar branch
@@ -233,15 +227,11 @@ git commit -m "feat: adiciona nova funcionalidade"
 git push origin feature/nova-funcionalidade
 ```
 
-## 📋 Changelog
+## Changelog
 
 Ver [CHANGELOG.md](CHANGELOG.md) para histórico de versões.
 
-## 📄 Licença
+## Licença
 
 Uso interno - EPTV
 
-## 👥 Contato
-
-**Inteligência Comercial - EPTV**
-- Azure DevOps: [data-and-crm/General](https://dev.azure.com/data-and-crm/General)

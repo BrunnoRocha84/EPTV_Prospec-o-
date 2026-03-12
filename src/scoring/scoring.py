@@ -248,7 +248,7 @@ def gerar_output(df: pd.DataFrame, caminho_output: str) -> str:
     # Seleciona colunas principais para output
     colunas_identificacao = ['CNPJ', 'RAZÃO SOCIAL', 'NOME FANTASIA', 'CIDADE', 'UF']
     colunas_contato = ['MELHOR TELEFONE', 'MELHOR EMAIL', 'MELHOR SITE']
-    colunas_empresa = ['PORTE ESTIMADO', 'FATURAMENTO PRESUMIDO PARA ESTE CNPJ', 'SITUAÇÃO CADASTRAL']
+    colunas_empresa = ['SETOR AMIGÁVEL', 'PORTE ESTIMADO', 'FATURAMENTO PRESUMIDO PARA ESTE CNPJ', 'SITUAÇÃO CADASTRAL']
     colunas_redes = ['INSTAGRAM', 'FACEBOOK', 'LINKEDIN', 'WHATSAPP']
     colunas_scores = [
         '_score_final', '_prioridade',
@@ -266,20 +266,28 @@ def gerar_output(df: pd.DataFrame, caminho_output: str) -> str:
     
     # Renomeia colunas de score para nomes amigáveis
     renomear = {
-        '_score_final': 'SCORE_FINAL',
-        '_prioridade': 'PRIORIDADE',
-        '_score_cadastro': 'SCORE_CADASTRO',
-        '_score_viabilidade': 'SCORE_VIABILIDADE',
-        '_score_digital': 'SCORE_DIGITAL',
-        '_score_midia': 'SCORE_MIDIA',
-        '_score_contato': 'SCORE_CONTATO',
-        '_empresa_ativa': 'EMPRESA_ATIVA',
-        '_tem_contato': 'TEM_CONTATO',
-        '_presenca_digital': 'PRESENCA_DIGITAL',
-        '_match_kantar': 'ANUNCIA_TV',
-        '_match_crowley': 'ANUNCIA_RADIO',
-        '_match_paineis': 'ANUNCIA_PAINEIS',
-    }
+    'RAZÃO SOCIAL': 'RAZAO_SOCIAL',
+    'NOME FANTASIA': 'NOME_FANTASIA',
+    'SETOR AMIGÁVEL': 'SETOR',
+    'MELHOR TELEFONE': 'MELHOR_TELEFONE',
+    'MELHOR SITE': 'MELHOR_SITE',
+    'PORTE ESTIMADO': 'PORTE_ESTIMADO',
+    'FATURAMENTO PRESUMIDO PARA ESTE CNPJ': 'FATURAMENTO_PRESUMIDO',
+    'SITUAÇÃO CADASTRAL': 'SITUACAO_CADASTRAL',
+    '_score_final': 'SCORE_FINAL',
+    '_prioridade': 'PRIORIDADE',
+    '_score_cadastro': 'SCORE_CADASTRO',
+    '_score_viabilidade': 'SCORE_VIABILIDADE',
+    '_score_digital': 'SCORE_DIGITAL',
+    '_score_midia': 'SCORE_MIDIA',
+    '_score_contato': 'SCORE_CONTATO',
+    '_empresa_ativa': 'EMPRESA_ATIVA',
+    '_tem_contato': 'TEM_CONTATO',
+    '_presenca_digital': 'PRESENCA_DIGITAL',
+    '_match_kantar': 'ANUNCIA_TV',
+    '_match_crowley': 'ANUNCIA_RADIO',
+    '_match_paineis': 'ANUNCIA_PAINEIS',
+}
     df_output = df_output.rename(columns=renomear)
     
     # Cria arquivo Excel com múltiplas abas
